@@ -8,33 +8,53 @@ use Illuminate\Support\Str;
 
 class ProfileSeeder extends Seeder
 {
+    /**
+     * @return list<array{username: string, likes: int, revision: int}>
+     */
+    public static function definitions(): array
+    {
+        return [
+            ['username' => 'madison420ivy', 'likes' => 120_000, 'revision' => 10],
+            ['username' => 'amouranth', 'likes' => 1_821_184, 'revision' => 42],
+            ['username' => 'ladydisdainvip', 'likes' => 2_998, 'revision' => 4],
+        ];
+    }
+
     public function run(): void
     {
-        $this->upsert('madison420ivy', [
-            'likes' => 120_000,
-            'revision' => 10,
-            'last_attempt_at' => now()->subHour(),
-            'last_successful_refresh_at' => now()->subHour(),
-            'last_failure' => null,
-        ]);
-
-        $this->upsert('amouranth', [
-            'likes' => 1_821_184,
-            'revision' => 42,
-            'last_attempt_at' => now()->subHour(),
-            'last_successful_refresh_at' => now()->subHour(),
-            'last_failure' => null,
-        ]);
+        self::upsert(self::definitions());
     }
 
     /**
-     * @param  array<string, mixed>  $attributes
+     * @param  list<array{username: string, likes: int, revision: int}>  $definitions
      */
-    private function upsert(string $username, array $attributes): void
+    public static function upsert(array $definitions): void
     {
-        $profile = Profile::query()->firstOrNew(['username' => $username]);
-        $profile->fill($attributes);
-        $profile->uuid ??= (string) Str::uuid();
-        $profile->save();
+        $now = now();
+        $usernames = array_column($definitions, 'username');
+        $uuids = Profile::query()->whereIn('username', $usernames)->pluck('uuid', 'username');
+
+        $rows = array_map(function (array $definition) use ($uuids, $now): array {
+            return [
+                'uuid' => $uuids[$definition['username']] ?? (string) Str::uuid(),
+                'username' => $definition['username'],
+                'likes' => $definition['likes'],
+                'revision' => $definition['revision'],
+                'last_attempt_at' => $now->copy()->subHour(),
+                'last_successful_refresh_at' => $now->copy()->subHour(),
+                'last_failure' => null,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }, $definitions);
+
+        Profile::query()->upsert($rows, ['username'], [
+            'likes',
+            'revision',
+            'last_attempt_at',
+            'last_successful_refresh_at',
+            'last_failure',
+            'updated_at',
+        ]);
     }
 }

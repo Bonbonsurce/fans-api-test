@@ -9,6 +9,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use Src\Infrastructure\Integrations\OnlyFans\OnlyFansClient;
 use Src\Infrastructure\Integrations\OnlyFans\OnlyFansClientInterface;
+use Src\Infrastructure\Integrations\OnlyFans\ScriptedOnlyFansClient;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -17,7 +18,20 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(OnlyFansClientInterface::class, OnlyFansClient::class);
+        $this->app->singleton(
+            OnlyFansClientInterface::class,
+            fn ($app) => $app->make($this->onlyFansClientClass()),
+        );
+    }
+
+    /**
+     * @return class-string<OnlyFansClientInterface>
+     */
+    private function onlyFansClientClass(): string
+    {
+        return config('services.onlyfans.workload')
+            ? ScriptedOnlyFansClient::class
+            : OnlyFansClient::class;
     }
 
     /**

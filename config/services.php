@@ -38,6 +38,7 @@ return [
     'onlyfans' => [
         'api_key' => env('ONLYFANSAPI_API_KEY'),
         'base_url' => env('ONLY_FANS_API_BASE_URL', 'https://app.onlyfansapi.com'),
+        'workload' => (bool) env('ONLYFANS_WORKLOAD', false),
     ],
 
 ];
